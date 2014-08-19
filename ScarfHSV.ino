@@ -6,7 +6,7 @@ byte eepromAddress = 0;
 float movement = 0;
 float movementFactor = 0.031;
 
-float brightness = 100;
+float brightness = 120;
 float size = 10;
 
 float mapMin = -100;
@@ -16,6 +16,7 @@ const int DATAPIN = 12;
 const int LEDCOUNT = 50;
 
 CRGB leds[LEDCOUNT];
+CRGB ledsBuffer[LEDCOUNT];
 
 float r,g,b,shade;
 int program;
@@ -43,9 +44,9 @@ void GetProgram()
   byte storedProg = EEPROM.read(eepromAddress);
   Serial.print("Program Found: "); Serial.println(storedProg); 
   
-  if(storedProg == 6)
+  if(storedProg >= 6)
   {
-    EEPROM.write(eepromAddress, 1);
+    EEPROM.write(eepromAddress, 0);
   }
   else
   {
@@ -62,24 +63,27 @@ void Plasma()
  
  switch(program)
  {
-   case 1:
-     Rainbow();
-     break;
-   case 2:
-     RedBlue();
-     break;
-   case 3:
-     RedGreen();
-     break;
-   case 4:
-     AquaMorphing();
-     break;
-   case 5:
-     FullColorMorphingCentred();
-     break;
-   case 6:
-     RedMorphing();
-     break;
+   case 0:
+    Rainbow();
+    break;
+  case 1:
+    RainbowMorphing();
+    break;
+  case 2:
+    RedBlue();
+    break;
+  case 3:
+    RedGreen();
+    break;
+  case 4:
+    BlueGreen();
+    break;
+  case 5:
+    AquaCentred();
+    break;
+  case 6:
+    RedMorphing();
+    break;
  }
     //SHOW THE ANIMATION FRAME
     FastLED.show();
@@ -117,15 +121,46 @@ void Rainbow()
   movement+=movementFactor;
 }
 
-void RedGreen()
+void RainbowMorphing()
 {
+  CRGB buffer;
   for(int i = 0; i<LEDCOUNT; i++)
   {
     //memset(leds, 0, LEDCOUNT * 3);
   
-    shade = SinVerticle(i,0,size)
+    shade = //SinVerticle(i,0,size)
             + SinRotating(i,0,size) 
             + SinCircle(i,0, size) 
+            ;
+            
+    leds[i] = CHSV(mapLed(shade), 255, brightness);
+    
+    int mg = 86 * abs(sin(movement/2));
+    int mb = 86 * abs(cos(movement/4));
+    //Serial.print(mg);Serial.print(" ");Serial.println(mb);
+    
+    //shift the blue
+    buffer  = CHSV(mapLed(shade)-mg, 255, brightness);
+    leds[i].b=buffer.b;
+
+    //shift the grenn
+    buffer = CHSV(mapLed(shade)+mb, 255, brightness);
+    leds[i].g = buffer.g;
+ }
+
+  movement+=movementFactor;
+}
+
+void RedGreen()
+{
+  int s = size *.7;
+  for(int i = 0; i<LEDCOUNT; i++)
+  {
+    //memset(leds, 0, LEDCOUNT * 3);
+  
+    shade = SinVerticle(i,0,s)
+            + SinRotating(i,0,s) 
+            + SinCircle(i,0, s) 
             ;
     
     leds[i] = CHSV(mapLed(shade), 255, brightness);
@@ -142,7 +177,7 @@ void RedBlue()
   for(int i = 0; i<LEDCOUNT; i++)
   {
     shade = //SinVerticle(i,0,size)
-            //+ SinRotating(i,0,size) 
+            + SinRotating(i,0,size) 
             + SinCircle(i,0, size) 
             ;
 
@@ -152,13 +187,14 @@ void RedBlue()
   movement+=movementFactor;
 }
 
-void AquaMorphing()
+void BlueGreen()
 {
+  int s = size *.7;
   for(int i = 0; i<LEDCOUNT; i++)
   {
     shade = //SinVerticle(i,0,size)
             //+ SinRotating(i,0,size) 
-            + SinCircle(i,0, size*2) 
+            + SinCircle(i,0, s) 
             ;
     
     leds[i] = CHSV(mapLed(shade), 255, brightness);
@@ -180,13 +216,13 @@ void RedMorphing()
 
       leds[i] = CHSV(mapLed(shade), 255, brightness);
       leds[i].g = 0;
-      leds[i].b = leds[i].r*abs(sin(movement/2));;
+      leds[i].b = leds[i].r*abs(sin(movement/2));
    }
    movement+=movementFactor;
 }
 
 
-void FullColorMorphingCentred()
+void AquaCentred()
 {
  
   for(int i = 0; i<LEDCOUNT; i++)
@@ -195,9 +231,9 @@ void FullColorMorphingCentred()
             //+ SinRotating(i,0,size) 
             + SinCircleCentred(i,0, size/2)
             ;
-     leds[i] = CHSV(mapLed(shade), 255, brightness);
+   leds[i] = CHSV(mapLed(shade), 255, brightness);
    leds[i].r = 0;
-  leds[i].g = leds[i].b;
+   leds[i].g = leds[i].b;
     
     }
     movement+=movementFactor/2;//bit faster5
@@ -258,7 +294,7 @@ void serialEvent() {
     Serial.print("DataRecieved: "); Serial.println(inByte);
     inByte -= 48;
     Serial.print("DataModified: "); Serial.println(inByte);
-     if( inByte>=1 && inByte <=6)
+     if(inByte <=6)
      {
        program = inByte;
        Serial.print("Program Set as "); Serial.println(inByte);
@@ -270,5 +306,7 @@ int mapLed(float s)
 {
   return map(shade*100 ,mapMin, mapMax, 0, 255);
 }
+
+
 
 
