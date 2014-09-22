@@ -210,7 +210,7 @@ void RedMorphing()
   for(int i = 0; i<LEDCOUNT; i++)
   {
     shade = //SinVerticle(i,0,size)
-            + SinRotating(i,0,size) 
+            + SinRotating(i,0,size/2) 
             + SinCircle(i,0, size) 
             ;
 
